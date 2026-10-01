@@ -105,7 +105,12 @@ export function validate(d) {
         `${label} must be ${int ? "a whole number" : "a number"} of at least ${min}.`,
       );
   };
-  req("customer", "Customer name/number");
+  req(
+    "customer",
+    d.kind === "vendor" && d.documentType === "Jewelry Production"
+      ? "Style number"
+      : "Customer name/number",
+  );
   if (d.kind === "jewelry") {
     for (const [k, l] of [
       ["salesperson", "Salesperson"],
@@ -158,17 +163,23 @@ export function validate(d) {
     }
   } else {
     req("vendor", "Vendor name");
-    choice("documentType", ["Memo", "Invoice"], "Memo or Invoice");
-    for (const [k, l] of [
-      ["address", "Address"],
-      ["city", "City"],
-      ["state", "State"],
-      ["zip", "ZIP"],
-    ])
-      req(k, l);
-    choice("carrier", ["FedEx", "UPS", "USPS", "Other"], "carrier");
-    choice("speed", ["1 Day", "2 Day", "Other"], "shipping speed");
-    number(d.charge, "Shipping charge");
+    choice(
+      "documentType",
+      ["Memo", "Invoice", "Jewelry Production"],
+      "Memo, Invoice, or Jewelry Production",
+    );
+    if (d.documentType !== "Jewelry Production") {
+      for (const [k, l] of [
+        ["address", "Address"],
+        ["city", "City"],
+        ["state", "State"],
+        ["zip", "ZIP"],
+      ])
+        req(k, l);
+      choice("carrier", ["FedEx", "UPS", "USPS", "Other"], "carrier");
+      choice("speed", ["1 Day", "2 Day", "Other"], "shipping speed");
+      number(d.charge, "Shipping charge");
+    }
     const rows = usedRows(d);
     if (!rows.length) e.push("Add at least one vendor lot.");
     rows.forEach((r, i) =>
@@ -277,6 +288,20 @@ export function normalize(input) {
       if (r.setting !== "Other") delete r.settingOther;
       return r;
     });
+  }
+  if (d.kind === "vendor" && d.documentType === "Jewelry Production") {
+    for (const k of [
+      "address",
+      "city",
+      "state",
+      "zip",
+      "carrier",
+      "carrierOther",
+      "speed",
+      "speedOther",
+      "charge",
+    ])
+      delete d[k];
   }
   if (d.carrier !== "Other") delete d.carrierOther;
   if (d.speed !== "Other") delete d.speedOther;

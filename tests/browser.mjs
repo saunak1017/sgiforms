@@ -61,13 +61,18 @@ try {
   assert.equal(await page.locator("[role=alert]").count(), 0);
   for (const [label, ext] of [
     ["Word", "docx"],
-    ["PDF", "pdf"],
+    ["SGI PDF", "pdf"],
   ]) {
     const download = page.waitForEvent("download");
     await page.getByRole("button", { name: label, exact: true }).click();
     const d = await download;
     await d.saveAs(`../qa/jewelry.${ext}`);
   }
+  const manufacturerDownload = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Manufacturer PDF", exact: true })
+    .click();
+  await (await manufacturerDownload).saveAs("../qa/jewelry-manufacturer.pdf");
   await page.getByLabel("Received SGI name or number").fill("Kyi");
   await page.getByLabel("Received SGI date").fill("2026-10-14");
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
@@ -112,7 +117,7 @@ try {
   await page.getByText("All changes saved", { exact: true }).waitFor();
   for (const [label, ext] of [
     ["Word", "docx"],
-    ["PDF", "pdf"],
+    ["SGI PDF", "pdf"],
   ]) {
     const download = page.waitForEvent("download");
     await page.getByRole("button", { name: label, exact: true }).click();
@@ -122,15 +127,16 @@ try {
   await page.screenshot({ path: "../qa/vendor.png", fullPage: true });
   const submittedId = new URL(page.url()).hash.split("/")[1];
   const snapshotUrl = `${base}/#submitted/${submittedId}`;
-  const originalDownload = page.waitForEvent("download");
   await page.goto(snapshotUrl);
   await page.reload();
-  const originalPdf = await originalDownload;
-  assert.match(originalPdf.suggestedFilename(), /-submitted\.pdf$/);
-  await originalPdf.saveAs("../qa/vendor-submitted.pdf");
   await page
     .getByRole("heading", { name: "Original submitted form" })
     .waitFor();
+  const originalDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download SGI PDF" }).click();
+  const originalPdf = await originalDownload;
+  assert.match(originalPdf.suggestedFilename(), /-submitted\.pdf$/);
+  await originalPdf.saveAs("../qa/vendor-submitted.pdf");
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   const signedOut = page;
   await signedOut.goto(snapshotUrl);
@@ -138,9 +144,14 @@ try {
   await signedOut
     .getByLabel("Password", { exact: true })
     .fill("local-test-password-123");
-  const resumed = signedOut.waitForEvent("download");
   await signedOut.getByRole("button", { name: "Sign in" }).click();
-  assert.match((await resumed).suggestedFilename(), /-submitted\.pdf$/);
+  await signedOut
+    .getByRole("heading", { name: "Original submitted form" })
+    .waitFor();
+  assert.equal(
+    await signedOut.getByRole("button", { name: "Download SGI PDF" }).count(),
+    1,
+  );
 
   await page.getByRole("button", { name: "All forms" }).click();
   await page.setViewportSize({ width: 390, height: 844 });

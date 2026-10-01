@@ -13,7 +13,9 @@ export async function exportRecord(record, format) {
         (!Array.isArray(d[k]) || d[k].length),
     )
     .map(([k, l]) => [
-      l,
+      k === "customer" && d.documentType === "Jewelry Production"
+        ? "Style Number"
+        : l,
       Array.isArray(d[k])
         ? d[k].join(", ")
         : typeof d[k] === "boolean"
@@ -49,7 +51,7 @@ export async function exportRecord(record, format) {
           ["Vendor Memo In Completed", d.completed ? "Yes" : "No", ""],
           ["Entered By", d.completedBy || "", d.completedDate || ""],
         ];
-  if (format === "pdf") {
+  if (format === "pdf" || format === "manufacturer-pdf") {
     const { jsPDF } = await import("jspdf");
     const { autoTable } = await import("jspdf-autotable");
     const pdf = new jsPDF();
@@ -68,6 +70,123 @@ export async function exportRecord(record, format) {
       pdf.addFont(filename, "SGI", style);
     }
     pdf.setFont("SGI", "normal");
+    if (format === "manufacturer-pdf") {
+      if (d.kind !== "jewelry")
+        throw new Error(
+          "Manufacturer PDFs are only available for jewelry orders.",
+        );
+
+      const present = (value) =>
+        Array.isArray(value) ? value.join(", ") : String(value ?? "").trim();
+      const pieceDetails = [
+        ["Ring size", d.ringSize],
+        ["Length", d.length],
+        ["Earring back", [d.back, d.backOther].filter(Boolean).join(": ")],
+        [
+          "Chain",
+          d.includeChain
+            ? [d.chainColor, d.chainType, d.chainLength, d.chainOther]
+                .filter(Boolean)
+                .join(", ")
+            : "",
+        ],
+        ["Other piece information", d.pieceInfo],
+      ].filter(([, value]) => present(value));
+      const stamping = [present(d.stamping), d.stampingOther]
+        .filter(Boolean)
+        .join(": ");
+      const stoneLines = d.noStones
+        ? [["Metal only / no stones"]]
+        : usedRows(d).map((stone, index) => [
+            [
+              `${index + 1}.`,
+              stone.quantity && `Qty ${stone.quantity}`,
+              stone.shape,
+              stone.weight && `${stone.weight} ct total`,
+              stone.type,
+              stone.position,
+              stone.setting,
+              stone.settingOther,
+              stone.lot && `Lot ${stone.lot}`,
+              stone.notes,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          ]);
+
+      pdf.setFont("SGI", "bold");
+      pdf.setFontSize(24);
+      pdf.text(`STYLE ${present(d.style) || "—"}`, 14, 18);
+      pdf.setFontSize(17);
+      pdf.text(`DUE ${present(d.due) || "—"}`, 196, 18, { align: "right" });
+      pdf.setDrawColor(35, 51, 47);
+      pdf.line(14, 23, 196, 23);
+      autoTable(pdf, {
+        startY: 28,
+        body: [
+          [
+            "Quantity",
+            present(d.quantity) || "—",
+            "Category",
+            present(d.category) || "—",
+          ],
+          [
+            "Metal",
+            [present(d.metal), present(d.metalColor)]
+              .filter(Boolean)
+              .join(" · ") || "—",
+            "Stamping",
+            stamping || "—",
+          ],
+        ],
+        theme: "grid",
+        styles: { font: "SGI", fontSize: 9, cellPadding: 2 },
+        columnStyles: {
+          0: { fontStyle: "bold", cellWidth: 24 },
+          1: { cellWidth: 64 },
+          2: { fontStyle: "bold", cellWidth: 24 },
+        },
+      });
+      let y = pdf.lastAutoTable.finalY + 7;
+      if (pieceDetails.length) {
+        pdf.setFont("SGI", "bold");
+        pdf.setFontSize(12);
+        pdf.text("Piece Information", 14, y);
+        autoTable(pdf, {
+          startY: y + 3,
+          body: pieceDetails.map(([label, value]) => [label, present(value)]),
+          theme: "plain",
+          styles: { font: "SGI", fontSize: 8, cellPadding: 1.2 },
+          columnStyles: { 0: { fontStyle: "bold", cellWidth: 42 } },
+          margin: { left: 14, right: 14 },
+        });
+        y = pdf.lastAutoTable.finalY + 7;
+      }
+      pdf.setFont("SGI", "bold");
+      pdf.setFontSize(12);
+      pdf.text("Stones & Setting Information", 14, y);
+      autoTable(pdf, {
+        startY: y + 3,
+        body: stoneLines.length
+          ? stoneLines
+          : [["No stone information entered"]],
+        theme: "grid",
+        styles: {
+          font: "SGI",
+          fontSize: Math.max(
+            5,
+            Math.min(8, 70 / Math.max(stoneLines.length, 1)),
+          ),
+          cellPadding: 1.3,
+          overflow: "ellipsize",
+          minCellHeight: 4,
+        },
+        margin: { left: 14, right: 14, bottom: 10 },
+      });
+      while (pdf.getNumberOfPages() > 1) pdf.deletePage(pdf.getNumberOfPages());
+      pdf.save(`manufacturer-${present(d.style) || record.id.slice(0, 8)}.pdf`);
+      return;
+    }
     pdf.setFontSize(16);
     pdf.text(title, 14, 20);
     autoTable(pdf, {

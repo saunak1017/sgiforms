@@ -69,6 +69,24 @@ test("vendor blank rows allowed, partial rows rejected", () => {
   d.rows[1] = { vendorLot: "partial" };
   assert.ok(validate(d).length > 0);
 });
+test("jewelry production vendor entries use a style number and need no shipping", () => {
+  const d = {
+    ...blank("vendor", "Saunak"),
+    customer: "STYLE-100",
+    vendor: "Stone Supplier",
+    documentType: "Jewelry Production",
+  };
+  d.rows[0] = {
+    vendorLot: "V1",
+    cpCt: 1,
+    cpTotal: 1,
+    details: "1ct Round",
+    sgLot: "S1",
+    spCt: 2,
+    spTotal: 2,
+  };
+  assert.deepEqual(validate(d), []);
+});
 test("shipment and vendor completion validation", () => {
   const d = jewelry();
   d.processing.shipped = { by: "Saunak", date: "2026-10-10" };
