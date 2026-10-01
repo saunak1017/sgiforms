@@ -1,0 +1,13 @@
+{
+  "name": "sgi-forms-notifications",
+  "main": "server/notification-worker.js",
+  "compatibility_date": "2026-09-01",
+  "triggers": { "crons": ["* * * * *"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sgi-forms",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+    },
+  ],
+}
