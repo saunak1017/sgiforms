@@ -10,6 +10,19 @@
 body {
   margin: 0;
 }
+.save-confirmation {
+  position: fixed;
+  z-index: 20;
+  top: 20px;
+  right: 24px;
+  padding: 14px 18px;
+  border: 1px solid #9bb8aa;
+  border-radius: 8px;
+  background: #eaf4ee;
+  color: #214e40;
+  box-shadow: 0 8px 28px rgb(35 51 47 / 18%);
+  font-weight: 700;
+}
 button,
 input,
 select,
