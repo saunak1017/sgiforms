@@ -45,6 +45,7 @@ try {
   await page.getByLabel("Row 1 Measurements / Notes").fill("9.2 x 6.4 mm");
   await page.getByLabel("Row 1 Center / Side").selectOption("Center");
   await page.getByLabel("Row 1 Setting Type").selectOption("4 Prong");
+  await page.getByLabel("Description", { exact: true }).fill("Oval halo ring");
   await page.getByLabel("Inventory", { exact: false }).selectOption("Asset");
   await page.getByLabel("SMS", { exact: true }).check();
   await page

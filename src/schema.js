@@ -239,6 +239,7 @@ export const LABELS = {
   stoneTypes: "Stone Type",
   stoneTypeOther: "Other Stone Type",
   otherSetting: "Other Setting Information",
+  description: "Description",
   inventory: "Inventory",
   stamping: "Stamping",
   stampingOther: "Other Stamping",

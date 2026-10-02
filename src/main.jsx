@@ -913,6 +913,9 @@ function Editor({ d, change, user }) {
                 {area("otherSetting", "Other Setting Information")}
               </>
             )}
+            <div className="grid">
+              {field("description", "Description", "text")}
+            </div>
           </section>
           <section className="panel">
             <h2>04 / Inventory & stamping</h2>

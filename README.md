@@ -19,6 +19,7 @@ No production credentials are included. The project is coded and tested locally;
 - Jewelry category reveals the relevant fields. Pendant chain details are conditional on Include Chain. Ring size is required for rings; length, including its unit, for bracelets and necklaces; back type for earrings.
 - Multiple metal colors, stone types, and stamping options. Other selections require explanations.
 - Stone rows include Center/Side and setting. Shape, quantity, position, and setting are required on each used row; other stone columns are available but optional. No Stones / Metal Only bypasses stone requirements.
+- Jewelry orders include a free-text description between stones/settings and inventory/stamping; it is included in both SGI and manufacturer PDFs.
 - Vendor memo starts with ten rows. Only used rows are required; all seven columns must be completed in each used row. Carat weight belongs in Details. Pricing is entered manually. Jewelry Production entries use a style number in place of the customer and do not require shipping details.
 - Order-processing fields are editable over time, with actor/date defaults available. Shipping completion requires tracking and memo/invoice number. Vendor completion has Entered By and Date.
 - Dashboard refreshes every 15 seconds. The open editor preserves unsaved work; conflicting saves are rejected with a message so a colleague's changes are not overwritten.

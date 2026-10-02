@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { blank, validate, RECIPIENTS } from "../src/schema.js";
+import { blank, validate, RECIPIENTS, LABELS } from "../src/schema.js";
 import { hashPassword, ITERATIONS } from "../server/auth.js";
 const jewelry = () => ({
   ...blank("jewelry", "Saunak"),
@@ -23,6 +23,8 @@ const jewelry = () => ({
 });
 test("metal-only ring bypasses stone validation", () =>
   assert.deepEqual(validate(jewelry()), []));
+test("jewelry description is available to SGI exports", () =>
+  assert.equal(LABELS.description, "Description"));
 test("stone rows require placement and setting and Other details", () => {
   const d = {
     ...jewelry(),

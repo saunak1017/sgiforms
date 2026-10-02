@@ -91,6 +91,7 @@ export async function exportRecord(record, format) {
             : "",
         ],
         ["Other piece information", d.pieceInfo],
+        ["Description", d.description],
       ].filter(([, value]) => present(value));
       const stamping = [present(d.stamping), d.stampingOther]
         .filter(Boolean)
