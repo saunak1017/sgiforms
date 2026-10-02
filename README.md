@@ -19,23 +19,24 @@ No production credentials are included. The project is coded and tested locally;
 - Jewelry category reveals the relevant fields. Pendant chain details are conditional on Include Chain. Ring size is required for rings; length, including its unit, for bracelets and necklaces; back type for earrings.
 - Multiple metal colors, stone types, and stamping options. Other selections require explanations.
 - Stone rows include Center/Side and setting. Shape, quantity, position, and setting are required on each used row; other stone columns are available but optional. No Stones / Metal Only bypasses stone requirements.
-- Vendor memo starts with ten rows. Only used rows are required; all seven columns must be completed in each used row. Carat weight belongs in Details. Pricing is entered manually.
+- Jewelry orders include a free-text description between stones/settings and inventory/stamping; it is included in both SGI and manufacturer PDFs.
+- Vendor memo starts with ten rows. Only used rows are required; all seven columns must be completed in each used row. Carat weight belongs in Details. Pricing is entered manually. Jewelry Production entries use a style number in place of the customer and do not require shipping details.
 - Order-processing fields are editable over time, with actor/date defaults available. Shipping completion requires tracking and memo/invoice number. Vendor completion has Entered By and Date.
 - Dashboard refreshes every 15 seconds. The open editor preserves unsaved work; conflicting saves are rejected with a message so a colleague's changes are not overwritten.
 - Search and Draft/In Progress/Completed filters; due-date highlighting; activity history.
-- Word (.docx) and PDF downloads include saved form fields, used rows, processing details. Save before exporting. Long tables span pages; stone/vendor tables use landscape pages.
+- Word (.docx) and SGI PDF downloads include saved form fields, used rows, and processing details. Jewelry orders also provide a one-page manufacturer PDF with only production information. Save before exporting. Long SGI tables span pages; stone/vendor tables use landscape pages.
 - Exactly one submission notification event per form, addressed to its fixed group. Draft saves, later edits, completion updates do not create new email events.
 
 ## Notifications
 
-| Form | Recipients |
-| --- | --- |
-| Jewelry | saunak@shivanigems.com, atit@shivanigems.com, mehul@shivanigems.com, bhavesh@shivanigems.com, kyi@shivanigems.com |
-| Vendor Memo In | saunak@shivanigems.com, atit@shivanigems.com, data@shivanigems.com |
+| Form           | Recipients                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Jewelry        | saunak@shivanigems.com, atit@shivanigems.com, mehul@shivanigems.com, bhavesh@shivanigems.com, kyi@shivanigems.com |
+| Vendor Memo In | saunak@shivanigems.com, atit@shivanigems.com, data@shivanigems.com                                                |
 
 From: **SGI Forms <saunak@shivanigems.com>**. Reply-to: **saunak@shivanigems.com**.
 
-Emails use your two Resend templates, with links to the current form and the original submitted PDF. Both links require an office account. The PDF link resumes after sign-in and generates a PDF from the immutable first-submission snapshot in D1. Later edits do not change that snapshot. No R2, photo uploads, or PDF file storage is required. Word and PDF exports inside the editor reflect the current saved form.
+Emails use your two Resend templates, with links to the current form and the original submitted-PDF page. Both links require an office account. The PDF page resumes after sign-in and lets the user choose the SGI PDF or, for jewelry, the manufacturer PDF generated from the immutable first-submission snapshot in D1. Later edits do not change that snapshot. No R2, photo uploads, or PDF file storage is required. Word and PDF exports inside the editor reflect the current saved form.
 
 Submission and email queue insertion happen in the same database batch. The first submission freezes the email payload. Resend idempotency protects retries and the database retains sent state. "Sent" means accepted by Resend, not proof of inbox delivery. Check Resend for delivery/bounce information.
 

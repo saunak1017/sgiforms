@@ -44,7 +44,8 @@ function App() {
     [dirty, setDirty] = useState(false),
     [busy, setBusy] = useState(false),
     [admin, setAdmin] = useState(false),
-    [mail, setMail] = useState(true);
+    [mail, setMail] = useState(true),
+    [savedMessage, setSavedMessage] = useState("");
   async function refresh() {
     const r = await api("records");
     setRecords(r.records);
@@ -80,7 +81,6 @@ function App() {
           `records/${location.hash.split("/")[1]}/submitted`,
         );
         setSnapshot(saved);
-        await exportRecord(saved, "pdf");
       });
     } else if (location.hash.startsWith("#record/"))
       open(location.hash.split("/")[1]);
@@ -125,6 +125,8 @@ function App() {
       location.hash = "record/" + r.id;
       setDirty(false);
       await refresh();
+      setSavedMessage(submit ? "Form submitted and saved." : "Changes saved.");
+      window.setTimeout(() => setSavedMessage(""), 3500);
     });
   }
   function close() {
@@ -282,6 +284,11 @@ function App() {
             </button>
           </div>
         )}
+        {savedMessage && (
+          <div className="save-confirmation" role="status">
+            ✓ {savedMessage}
+          </div>
+        )}
         {!mail && (
           <div className="notice">
             Submission emails are queued. Add RESEND_API_KEY to enable sending.
@@ -293,17 +300,25 @@ function App() {
             <p>
               {snapshot.data.customer} · {snapshot.id.slice(0, 8)}
             </p>
-            <p>
-              Your PDF download has been requested. If it did not start, use the
-              button below.
-            </p>
+            <p>Choose the PDF version you want to download.</p>
             <div className="actions">
               <button
                 disabled={busy}
                 onClick={() => run(() => exportRecord(snapshot, "pdf"))}
               >
-                Download submitted PDF
+                Download SGI PDF
               </button>
+              {snapshot.data.kind === "jewelry" && (
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    run(() => exportRecord(snapshot, "manufacturer-pdf"))
+                  }
+                >
+                  Download Manufacturer PDF
+                </button>
+              )}
               <button
                 className="secondary"
                 onClick={() => {
@@ -354,8 +369,19 @@ function App() {
                       disabled={busy || dirty}
                       onClick={() => run(() => exportRecord(editor, "pdf"))}
                     >
-                      PDF
+                      SGI PDF
                     </button>
+                    {editor.data.kind === "jewelry" && (
+                      <button
+                        className="secondary"
+                        disabled={busy || dirty}
+                        onClick={() =>
+                          run(() => exportRecord(editor, "manufacturer-pdf"))
+                        }
+                      >
+                        Manufacturer PDF
+                      </button>
+                    )}
                     {user.role === "admin" && (
                       <button
                         className="danger"
@@ -767,7 +793,14 @@ function Editor({ d, change, user }) {
         </h2>
         <div className="grid">
           {d.kind === "vendor" && field("vendor", "Vendor Name", "text", true)}
-          {field("customer", "Customer Name/Number", "text", true)}
+          {field(
+            "customer",
+            d.kind === "vendor" && d.documentType === "Jewelry Production"
+              ? "Style Number"
+              : "Customer Name/Number",
+            "text",
+            true,
+          )}
           {d.kind === "jewelry" ? (
             <>
               {field("salesperson", "Salesperson", "text", true)}
@@ -797,7 +830,12 @@ function Editor({ d, change, user }) {
               )}
             </>
           ) : (
-            select("documentType", "Memo / Invoice", ["Memo", "Invoice"], true)
+            select(
+              "documentType",
+              "Memo / Invoice",
+              ["Memo", "Invoice", "Jewelry Production"],
+              true,
+            )
           )}
         </div>
       </section>
@@ -875,6 +913,9 @@ function Editor({ d, change, user }) {
                 {area("otherSetting", "Other Setting Information")}
               </>
             )}
+            <div className="grid">
+              {field("description", "Description", "text")}
+            </div>
           </section>
           <section className="panel">
             <h2>04 / Inventory & stamping</h2>
@@ -914,46 +955,51 @@ function Editor({ d, change, user }) {
           </div>
         </section>
       )}
-      <section className="panel">
-        <h2>{d.kind === "jewelry" ? "05" : "03"} / Shipping</h2>
-        <div className="grid">
-          {d.kind === "vendor" && (
-            <>
-              {field("address", "Address", "text", true)}
-              {field("city", "City", "text", true)}
-              {field("state", "State", "text", true)}
-              {field("zip", "ZIP", "text", true)}
-            </>
-          )}
-          {select(
-            "carrier",
-            "Carrier",
-            d.kind === "vendor"
-              ? ["FedEx", "UPS", "USPS", "Other"]
-              : ["FedEx", "UPS", "Other"],
-            d.kind === "vendor",
-          )}
-          {d.carrier === "Other" &&
-            field("carrierOther", "Other Carrier", "text", true)}
-          {select(
-            "speed",
-            "Shipping Speed",
-            d.kind === "vendor"
-              ? ["1 Day", "2 Day", "Other"]
-              : ["Overnight", "2 Day", "Other"],
-            d.kind === "vendor",
-          )}
-          {d.speed === "Other" &&
-            field("speedOther", "Other Shipping Speed", "text", true)}
-          {field(
-            "charge",
-            "Shipping Charge ($)",
-            "number",
-            d.kind === "vendor",
-          )}
-        </div>
-        {area("notes", "Notes / Modifications / Special Instructions")}
-      </section>
+      {(d.kind !== "vendor" || d.documentType !== "Jewelry Production") && (
+        <section className="panel">
+          <h2>{d.kind === "jewelry" ? "05" : "03"} / Shipping</h2>
+          <div className="grid">
+            {d.kind === "vendor" && (
+              <>
+                {field("address", "Address", "text", true)}
+                {field("city", "City", "text", true)}
+                {field("state", "State", "text", true)}
+                {field("zip", "ZIP", "text", true)}
+              </>
+            )}
+            {select(
+              "carrier",
+              "Carrier",
+              d.kind === "vendor"
+                ? ["FedEx", "UPS", "USPS", "Other"]
+                : ["FedEx", "UPS", "Other"],
+              d.kind === "vendor",
+            )}
+            {d.carrier === "Other" &&
+              field("carrierOther", "Other Carrier", "text", true)}
+            {select(
+              "speed",
+              "Shipping Speed",
+              d.kind === "vendor"
+                ? ["1 Day", "2 Day", "Other"]
+                : ["Overnight", "2 Day", "Other"],
+              d.kind === "vendor",
+            )}
+            {d.speed === "Other" &&
+              field("speedOther", "Other Shipping Speed", "text", true)}
+            {field(
+              "charge",
+              "Shipping Charge ($)",
+              "number",
+              d.kind === "vendor",
+            )}
+          </div>
+          {area("notes", "Notes / Modifications / Special Instructions")}
+        </section>
+      )}
+      {d.kind === "vendor" &&
+        d.documentType === "Jewelry Production" &&
+        area("notes", "Notes / Modifications / Special Instructions")}
       <section className="panel">
         <h2>{d.kind === "jewelry" ? "06" : "04"} / Order processing</h2>
         <p className="muted">

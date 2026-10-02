@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { blank, validate, RECIPIENTS } from "../src/schema.js";
+import { blank, validate, RECIPIENTS, LABELS } from "../src/schema.js";
 import { hashPassword, ITERATIONS } from "../server/auth.js";
 const jewelry = () => ({
   ...blank("jewelry", "Saunak"),
@@ -23,6 +23,8 @@ const jewelry = () => ({
 });
 test("metal-only ring bypasses stone validation", () =>
   assert.deepEqual(validate(jewelry()), []));
+test("jewelry description is available to SGI exports", () =>
+  assert.equal(LABELS.description, "Description"));
 test("stone rows require placement and setting and Other details", () => {
   const d = {
     ...jewelry(),
@@ -68,6 +70,24 @@ test("vendor blank rows allowed, partial rows rejected", () => {
   assert.deepEqual(validate(d), []);
   d.rows[1] = { vendorLot: "partial" };
   assert.ok(validate(d).length > 0);
+});
+test("jewelry production vendor entries use a style number and need no shipping", () => {
+  const d = {
+    ...blank("vendor", "Saunak"),
+    customer: "STYLE-100",
+    vendor: "Stone Supplier",
+    documentType: "Jewelry Production",
+  };
+  d.rows[0] = {
+    vendorLot: "V1",
+    cpCt: 1,
+    cpTotal: 1,
+    details: "1ct Round",
+    sgLot: "S1",
+    spCt: 2,
+    spTotal: 2,
+  };
+  assert.deepEqual(validate(d), []);
 });
 test("shipment and vendor completion validation", () => {
   const d = jewelry();

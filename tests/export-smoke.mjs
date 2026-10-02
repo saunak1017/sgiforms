@@ -26,11 +26,18 @@ try {
     await page.getByRole("button", { name: "Word", exact: true }).waitFor();
     for (const [label, ext] of [
       ["Word", "docx"],
-      ["PDF", "pdf"],
+      ["SGI PDF", "pdf"],
     ]) {
       const wait = page.waitForEvent("download");
       await page.getByRole("button", { name: label, exact: true }).click();
       await (await wait).saveAs(`../qa/${kind}.${ext}`);
+    }
+    if (kind === "jewelry") {
+      const wait = page.waitForEvent("download");
+      await page
+        .getByRole("button", { name: "Manufacturer PDF", exact: true })
+        .click();
+      await (await wait).saveAs("../qa/jewelry-manufacturer.pdf");
     }
   }
   console.log("Updated Word and PDF exports generated successfully.");
