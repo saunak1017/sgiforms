@@ -11,6 +11,8 @@ export const RECIPIENTS = {
   vendor: [TEAM[0][1], TEAM[1][1], TEAM[5][1]],
 };
 export const OPTIONS = {
+  manufacturingLocation: ["Bombay", "NY", "Other"],
+  vendorLotTypes: ["Lab Grown", "Natural", "Gemstone", "Other"],
   category: ["Ring", "Pendant", "Earrings", "Bracelet", "Necklace"],
   styleType: ["New", "Existing", "Modified"],
   metal: ["18K", "14K", "10K", "Platinum", "Silver"],
@@ -50,12 +52,32 @@ export const PROCESS = [
   ["filled", "Form Filled Out"],
   ["jobBag", "Job Bag Created"],
   ["orderNumber", "Job Bag/Shivani Order Number"],
-  ["entered", "Information Entered Into System"],
+  ["entered", "Information Entered into System"],
   ["production", "Sent for Production"],
   ["received", "Received SGI"],
   ["qc", "SGI QC"],
   ["shipped", "Shipped to Customer"],
 ];
+export const ORDER_STAGES = PROCESS.filter(([key]) => key !== "orderNumber");
+export function orderStage(d) {
+  return (
+    [...ORDER_STAGES]
+      .reverse()
+      .find(([key]) => d.processing?.[key]?.date)?.[0] || "filled"
+  );
+}
+export function dashboardSection(d, status) {
+  if (d.kind === "vendor") return d.completed ? "completed" : "pending";
+  return status === "draft" ? "draft" : orderStage(d);
+}
+export function setSystemInformation(d, checked) {
+  const next = { ...d, systemInformation: checked };
+  for (const key of ["address", "city", "state", "zip"]) {
+    if (checked) next[key] = "System";
+    else if (next[key] === "System") next[key] = "";
+  }
+  return next;
+}
 export const today = () =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/New_York",
@@ -70,6 +92,7 @@ export function blank(kind, name) {
     rows: kind === "vendor" ? Array.from({ length: 10 }, () => ({})) : [{}],
     metalColor: [],
     stoneTypes: [],
+    vendorLotTypes: [],
     stamping: [],
     processing:
       kind === "jewelry" ? { filled: { by: name, date: today() } } : {},
@@ -207,15 +230,13 @@ export function validate(d) {
 export function stage(d, status) {
   if (status === "draft") return "Draft";
   if (d.kind === "vendor") return d.completed ? "Completed" : "Awaiting entry";
-  for (const [k, l] of [...PROCESS].reverse()) {
-    if (d.processing?.[k]?.date) return l;
-  }
-  return "Submitted";
+  return ORDER_STAGES.find(([key]) => key === orderStage(d))[1];
 }
 export const LABELS = {
   customer: "Customer Name/Number",
   salesperson: "Salesperson",
   manufacturer: "Manufacturer",
+  manufacturingLocation: "Manufacturing Location",
   due: "Due Date",
   style: "Style Number",
   styleType: "Style Classification",
@@ -244,7 +265,10 @@ export const LABELS = {
   stamping: "Stamping",
   stampingOther: "Other Stamping",
   vendor: "Vendor Name",
+  memoNumber: "Memo #",
   documentType: "Memo / Invoice",
+  vendorLotTypes: "Vendor Lot Types",
+  systemInformation: "System Information",
   address: "Address",
   city: "City",
   state: "State",
@@ -290,7 +314,11 @@ export function normalize(input) {
       return r;
     });
   }
+  if (d.kind === "vendor" && d.systemInformation) {
+    Object.assign(d, setSystemInformation(d, true));
+  }
   if (d.kind === "vendor" && d.documentType === "Jewelry Production") {
+    delete d.systemInformation;
     for (const k of [
       "address",
       "city",

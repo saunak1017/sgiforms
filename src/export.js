@@ -79,6 +79,7 @@ export async function exportRecord(record, format) {
       const present = (value) =>
         Array.isArray(value) ? value.join(", ") : String(value ?? "").trim();
       const pieceDetails = [
+        ["Manufacturing Location", d.manufacturingLocation],
         ["Ring size", d.ringSize],
         ["Length", d.length],
         ["Earring back", [d.back, d.backOther].filter(Boolean).join(": ")],
