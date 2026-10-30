@@ -665,3 +665,40 @@ details p {
     gap: 8px;
   }
 }
+
+.workflow-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 20px;
+}
+.workflow-tab {
+  background: white;
+  color: var(--ink, #23332f);
+  border: 1px solid #cbd5cf;
+  padding: 10px 14px;
+}
+.workflow-tab.active {
+  background: #23332f;
+  color: white;
+}
+.workflow-tab span {
+  margin-left: 6px;
+  opacity: 0.75;
+}
+.vendor-header {
+  grid-template-columns: 1.5fr 1fr 1.5fr 1fr;
+}
+@media (max-width: 1000px) {
+  .vendor-header {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 650px) {
+  .vendor-header {
+    grid-template-columns: 1fr;
+  }
+  .workflow-tab {
+    flex: 1 1 150px;
+  }
+}

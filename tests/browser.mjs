@@ -19,12 +19,13 @@ try {
     .getByLabel("Password", { exact: true })
     .fill("local-test-password-123");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.getByRole("button", { name: "+ New order" }).waitFor();
+  await page.getByRole("button", { name: "+ New Order" }).waitFor();
   await page.screenshot({ path: "../qa/dashboard.png", fullPage: true });
-  await page.getByRole("button", { name: "+ New order" }).click();
+  await page.getByRole("button", { name: "+ New Order" }).click();
   await page.getByLabel("Customer Name/Number").fill("QA Jewelry Store");
   await page.getByLabel("Salesperson", { exact: false }).fill("Saunak");
   await page.getByLabel("Manufacturer", { exact: false }).fill("RFG");
+  await page.getByLabel("Manufacturing Location").selectOption("Bombay");
   await page.getByLabel("Due Date").fill("2026-10-15");
   await page.getByLabel("Style Number").fill("QA100");
   await page.getByLabel("Style Classification").selectOption("New");
@@ -74,15 +75,19 @@ try {
     .getByRole("button", { name: "Manufacturer PDF", exact: true })
     .click();
   await (await manufacturerDownload).saveAs("../qa/jewelry-manufacturer.pdf");
+  const jewelryId = new URL(page.url()).hash.split("/")[1];
   await page.getByLabel("Received SGI name or number").fill("Kyi");
   await page.getByLabel("Received SGI date").fill("2026-10-14");
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await page.getByText("All changes saved", { exact: true }).waitFor();
   await page
-    .getByRole("button", { name: "Vendor memo in", exact: false })
+    .getByRole("button", { name: "Vendor Memo In", exact: false })
     .click();
-  await page.getByRole("button", { name: "+ New memo" }).click();
+  await page.getByRole("button", { name: "+ New Memo" }).click();
   await page.getByLabel("Vendor Name").fill("QA Supplier");
+  await page.getByLabel("Memo #", { exact: true }).fill("MEMO-QA / 123");
+  await page.getByLabel("Lab Grown", { exact: true }).check();
+  await page.getByLabel("Gemstone", { exact: true }).check();
   await page.getByLabel("Customer Name/Number").fill("QA Store");
   await page
     .getByLabel("Memo / Invoice", { exact: false })
@@ -106,6 +111,18 @@ try {
     ["Shipping Charge ($)", "25"],
   ])
     await page.getByLabel(label, { exact: false }).fill(value);
+  await page.getByLabel("System Information", { exact: true }).check();
+  for (const label of ["Address", "City", "State", "ZIP"])
+    assert.equal(
+      await page.getByLabel(label, { exact: false }).inputValue(),
+      "System",
+    );
+  await page.getByLabel("System Information", { exact: true }).uncheck();
+  assert.equal(
+    await page.getByLabel("Address", { exact: false }).inputValue(),
+    "",
+  );
+  await page.getByLabel("System Information", { exact: true }).check();
   await page.getByLabel("Carrier", { exact: false }).selectOption("FedEx");
   await page.getByLabel("Shipping Speed").selectOption("1 Day");
   await page.getByRole("button", { name: "Submit form" }).click();
@@ -127,6 +144,41 @@ try {
   }
   await page.screenshot({ path: "../qa/vendor.png", fullPage: true });
   const submittedId = new URL(page.url()).hash.split("/")[1];
+  await page
+    .getByRole("button", { name: "Vendor Memo In", exact: false })
+    .click();
+  assert.match(
+    await page.locator(".workflow-tab.active").innerText(),
+    /^Pending/,
+  );
+  assert.equal(
+    await page
+      .locator(".card")
+      .filter({ hasText: submittedId.slice(0, 8) })
+      .count(),
+    0,
+  );
+  await page.locator(".workflow-tab").filter({ hasText: "Completed" }).click();
+  const completedCard = page
+    .locator(".card")
+    .filter({ hasText: submittedId.slice(0, 8) });
+  await completedCard.click();
+  assert.equal(
+    await page.getByLabel("Memo #", { exact: true }).inputValue(),
+    "MEMO-QA / 123",
+  );
+  assert.equal(
+    await page.getByLabel("Lab Grown", { exact: true }).isChecked(),
+    true,
+  );
+  assert.equal(
+    await page.getByLabel("System Information", { exact: true }).isChecked(),
+    true,
+  );
+  assert.equal(
+    await page.getByLabel("Address", { exact: false }).inputValue(),
+    "System",
+  );
   const snapshotUrl = `${base}/#submitted/${submittedId}`;
   await page.goto(snapshotUrl);
   await page.reload();
@@ -155,6 +207,35 @@ try {
   );
 
   await page.getByRole("button", { name: "All forms" }).click();
+  await page
+    .getByRole("button", { name: "Jewelry Orders", exact: false })
+    .click();
+  assert.match(
+    await page.locator(".workflow-tab.active").innerText(),
+    /^Form Filled Out/,
+  );
+  assert.equal(
+    await page
+      .locator(".card")
+      .filter({ hasText: jewelryId.slice(0, 8) })
+      .count(),
+    0,
+  );
+  await page
+    .locator(".workflow-tab")
+    .filter({ hasText: "Received SGI" })
+    .click();
+  await page
+    .locator(".card")
+    .filter({ hasText: jewelryId.slice(0, 8) })
+    .click();
+  assert.equal(
+    await page.getByLabel("Manufacturing Location").inputValue(),
+    "Bombay",
+  );
+  await page
+    .getByRole("button", { name: "Jewelry Orders", exact: false })
+    .click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: "../qa/mobile.png", fullPage: true });
   assert.deepEqual(errors, []);

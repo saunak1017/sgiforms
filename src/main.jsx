@@ -4,6 +4,9 @@ import {
   TEAM,
   OPTIONS,
   PROCESS,
+  ORDER_STAGES,
+  dashboardSection,
+  setSystemInformation,
   STONES,
   LOTS,
   blank,
@@ -38,7 +41,7 @@ function App() {
     [records, setRecords] = useState([]),
     [kind, setKind] = useState("jewelry"),
     [query, setQuery] = useState(""),
-    [filter, setFilter] = useState("all"),
+    [filter, setFilter] = useState("filled"),
     [editor, setEditor] = useState(null),
     [snapshot, setSnapshot] = useState(null),
     [dirty, setDirty] = useState(false),
@@ -193,14 +196,7 @@ function App() {
   const visible = records.filter(
     (r) =>
       r.kind === kind &&
-      (filter === "all" ||
-        (filter === "draft"
-          ? r.status === "draft"
-          : filter === "completed"
-            ? r.data.completed || r.data.processing?.shipped?.date
-            : r.status === "submitted" &&
-              !r.data.completed &&
-              !r.data.processing?.shipped?.date)) &&
+      dashboardSection(r.data, r.status) === filter &&
       JSON.stringify(r.data).toLowerCase().includes(query.toLowerCase()),
   );
   return (
@@ -214,18 +210,24 @@ function App() {
         <button
           className={!editor && kind === "jewelry" ? "nav active" : "nav"}
           onClick={() => {
-            if (close()) setKind("jewelry");
+            if (close()) {
+              setKind("jewelry");
+              setFilter("filled");
+            }
           }}
         >
-          ◇ Jewelry orders
+          ◇ Jewelry Orders
         </button>
         <button
           className={!editor && kind === "vendor" ? "nav active" : "nav"}
           onClick={() => {
-            if (close()) setKind("vendor");
+            if (close()) {
+              setKind("vendor");
+              setFilter("pending");
+            }
           }}
         >
-          ▤ Vendor memo in
+          ▤ Vendor Memo In
         </button>
         {user.role === "admin" && (
           <button
@@ -271,8 +273,8 @@ function App() {
               : editor
                 ? "Form details"
                 : kind === "jewelry"
-                  ? "Jewelry orders"
-                  : "Vendor memo in"}
+                  ? "Jewelry Orders"
+                  : "Vendor Memo In"}
           </span>
           <span className="live">● Live dashboard · 15s refresh</span>
         </header>
@@ -473,7 +475,7 @@ function App() {
               <div>
                 <p className="eyebrow">KEEP WORK MOVING</p>
                 <h1>
-                  {kind === "jewelry" ? "Jewelry orders" : "Vendor memo in"}
+                  {kind === "jewelry" ? "Jewelry Orders" : "Vendor Memo In"}
                 </h1>
                 <p>
                   {kind === "jewelry"
@@ -492,7 +494,7 @@ function App() {
                   setDirty(true);
                 }}
               >
-                + New {kind === "jewelry" ? "order" : "memo"}
+                + New {kind === "jewelry" ? "Order" : "Memo"}
               </button>
             </div>
             <div className="metrics">
@@ -525,6 +527,35 @@ function App() {
                 </b>
               </div>
             </div>
+            <div className="workflow-tabs" aria-label="Workflow stages">
+              {(kind === "jewelry"
+                ? [...ORDER_STAGES, ["draft", "Drafts"]]
+                : [
+                    ["pending", "Pending"],
+                    ["completed", "Completed"],
+                  ]
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  className={
+                    filter === key ? "workflow-tab active" : "workflow-tab"
+                  }
+                  aria-pressed={filter === key}
+                  onClick={() => setFilter(key)}
+                >
+                  {label}{" "}
+                  <span>
+                    {
+                      records.filter(
+                        (r) =>
+                          r.kind === kind &&
+                          dashboardSection(r.data, r.status) === key,
+                      ).length
+                    }
+                  </span>
+                </button>
+              ))}
+            </div>
             <div className="toolbar">
               <input
                 aria-label="Search forms"
@@ -532,16 +563,6 @@ function App() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-              <select
-                aria-label="Filter status"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              >
-                <option value="all">All statuses</option>
-                <option value="active">In progress</option>
-                <option value="draft">Drafts</option>
-                <option value="completed">Completed / shipped</option>
-              </select>
               <span>{visible.length} records</span>
             </div>
             <div className="cards">
@@ -614,6 +635,11 @@ function Editor({ d, change, user }) {
         value={d[k] ?? ""}
         min={type === "number" ? 0 : undefined}
         step={type === "number" ? "any" : undefined}
+        disabled={
+          d.kind === "vendor" &&
+          d.systemInformation &&
+          ["address", "city", "state", "zip"].includes(k)
+        }
         onChange={(e) => set(k, e.target.value)}
       />
     </label>
@@ -634,9 +660,12 @@ function Editor({ d, change, user }) {
       </select>
     </label>
   );
-  const checks = (k, label, opts) => (
+  const checks = (k, label, opts, required = true) => (
     <fieldset>
-      <legend>{label} *</legend>
+      <legend>
+        {label}
+        {required && " *"}
+      </legend>
       <div className="checks">
         {opts.map((o) => (
           <label key={o}>
@@ -789,10 +818,15 @@ function Editor({ d, change, user }) {
       </p>
       <section className="panel">
         <h2>
-          01 / {d.kind === "jewelry" ? "Customer & order" : "Vendor & customer"}
+          01 / {d.kind === "jewelry" ? "Customer & Order" : "Vendor & Customer"}
         </h2>
-        <div className="grid">
-          {d.kind === "vendor" && field("vendor", "Vendor Name", "text", true)}
+        <div className={d.kind === "vendor" ? "grid vendor-header" : "grid"}>
+          {d.kind === "vendor" && (
+            <>
+              {field("vendor", "Vendor Name", "text", true)}
+              {field("memoNumber", "Memo #")}
+            </>
+          )}
           {field(
             "customer",
             d.kind === "vendor" && d.documentType === "Jewelry Production"
@@ -805,6 +839,11 @@ function Editor({ d, change, user }) {
             <>
               {field("salesperson", "Salesperson", "text", true)}
               {field("manufacturer", "Manufacturer", "text", true)}
+              {select(
+                "manufacturingLocation",
+                "Manufacturing Location",
+                OPTIONS.manufacturingLocation,
+              )}
               {field("due", "Due Date", "date", true)}
               {field("style", "Style Number", "text", true)}
               {select(
@@ -842,7 +881,7 @@ function Editor({ d, change, user }) {
       {d.kind === "jewelry" ? (
         <>
           <section className="panel">
-            <h2>02 / Piece details</h2>
+            <h2>02 / Piece Details</h2>
             <div className="grid">
               {select("category", "Jewelry Category", OPTIONS.category, true)}
               {select("metal", "Metal", OPTIONS.metal, true)}
@@ -898,7 +937,7 @@ function Editor({ d, change, user }) {
             {area("pieceInfo", "Other Piece Information")}
           </section>
           <section className="panel">
-            <h2>03 / Stones & setting</h2>
+            <h2>03 / Stones & Setting</h2>
             {toggle("noStones", "No Stones / Metal Only")}
             {!d.noStones && (
               <>
@@ -918,7 +957,7 @@ function Editor({ d, change, user }) {
             </div>
           </section>
           <section className="panel">
-            <h2>04 / Inventory & stamping</h2>
+            <h2>04 / Inventory & Stamping</h2>
             {select("inventory", "Inventory", ["Asset", "Memo"], true)}
             {checks("stamping", "Stamping", OPTIONS.stamping)}
             {d.stamping.includes("Other") &&
@@ -927,7 +966,8 @@ function Editor({ d, change, user }) {
         </>
       ) : (
         <section className="panel">
-          <h2>02 / Vendor lots</h2>
+          <h2>02 / Vendor Lots</h2>
+          {checks("vendorLotTypes", "Lot Types", OPTIONS.vendorLotTypes, false)}
           <p className="muted">
             All columns are required for each used row. Leave unused rows blank.
             Enter carat weight in Details.
@@ -958,6 +998,18 @@ function Editor({ d, change, user }) {
       {(d.kind !== "vendor" || d.documentType !== "Jewelry Production") && (
         <section className="panel">
           <h2>{d.kind === "jewelry" ? "05" : "03"} / Shipping</h2>
+          {d.kind === "vendor" && (
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={!!d.systemInformation}
+                onChange={(e) =>
+                  change(setSystemInformation(d, e.target.checked))
+                }
+              />
+              System Information
+            </label>
+          )}
           <div className="grid">
             {d.kind === "vendor" && (
               <>
@@ -1001,7 +1053,7 @@ function Editor({ d, change, user }) {
         d.documentType === "Jewelry Production" &&
         area("notes", "Notes / Modifications / Special Instructions")}
       <section className="panel">
-        <h2>{d.kind === "jewelry" ? "06" : "04"} / Order processing</h2>
+        <h2>{d.kind === "jewelry" ? "06" : "04"} / Order Processing</h2>
         <p className="muted">
           Update these fields as work progresses. These updates do not send
           emails.
